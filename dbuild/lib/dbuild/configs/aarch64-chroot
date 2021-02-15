@@ -1,0 +1,5 @@
+TARGET_MACHINE=aarch64
+PACKAGES=(base-chroot)
+HOSTNAME=$(cat /etc/hostname)
+TIMEZONE=$(readlink /etc/localtime | sed 's|/usr/share/zoneinfo/||g')
+SKIP_SERVICES=y

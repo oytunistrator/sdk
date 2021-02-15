@@ -1,0 +1,5 @@
+source "${DBUILD_LIB_DIR}/configs/common"
+
+TARGET_MACHINE=x86_64
+QEMU_CMD="qemu-system-x86_64"
+PACKAGES+=(grub grub-x86_64-efi)

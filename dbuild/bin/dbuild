@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+
+set -e +f
+
+export DBUILD_BUILD_DIR="$PWD/build"
+export DBUILD_BIN_DIR=$(readlink -f $(dirname $0))
+export DBUILD_DIR=$(dirname "$DBUILD_BIN_DIR")
+export DBUILD_LIB_DIR="${DBUILD_DIR}/lib/dbuild"
+export DBUILD_SYSCONF_DIR="${DBUILD_DIR}/etc"
+export DBUILD_ARGS=()
+
+export HOST_MACHINE=$(xbps-uhelper -C /dev/null arch)
+export HOST_ARCH="${HOST_MACHINE%-musl}"
+
+export EXPIDUS_VERSION="0.1.0-prealpha"
+
+if [[ -z "$SUDO_USER" ]]; then
+	export DBUILD_USER=$(whoami)
+else
+	export DBUILD_USER="$SUDO_USER"
+fi
+
+while (( "$#" )); do
+	if [[ -z "${DBUILD_ARGS}" ]]; then
+		case "$1" in
+			-h|--help)
+				echo "Usage: $(basename $0) [options] <action> [arguments]"
+				echo
+				echo "Options:"
+				echo "  --config, -c    Sets the configuration file name, see the \"Configs\" section in help for a list of valid values."
+				echo "  --builddir, -b  Sets the path to the build directory, defaults to a folder called build in the current working directory"
+				echo "  --debug, -d     Enabled debug mode, any messages in blue is a debug level message"
+				echo "  --help, -h      Prints $(basename $0)'s usage and options"
+
+				echo
+				echo "Configs:"
+				configs=($(ls "${DBUILD_LIB_DIR}/configs"))
+				if [[ -d "${HOME}/.config/expidus-sdk/dbuild/configs" ]]; then
+					configs+=($(ls "${HOME}/.config/expidus-sdk/dbuild/configs"))
+				fi
+				for cfg in "${configs[@]}"; do
+					echo "  ${cfg}"
+				done
+
+				echo
+				echo "Actions:"
+				actions=($(ls "${DBUILD_LIB_DIR}/actions"))
+				if [[ -d "${HOME}/.config/expidus-sdk/dbuild/actions" ]]; then
+					actions+=($(ls "${HOME}/.config/expidus-sdk/dbuild/actions"))
+				fi
+				for act in "${actions[@]}"; do
+					echo "  ${act%.sh}"
+				done
+
+				echo
+				echo "All bugs or issues should be reported to: <https://github.com/ExpidusOS/sdk/issues>"
+				exit 0
+				;;
+			-c|--config)
+				DBUILD_CONFIG_NAME="$2"
+				shift 2
+				;;
+			-b|--builddir)
+				DBUILD_BUILD_DIR="$2"
+				shift 2
+				;;
+			-d|--debug)
+				export DBUILD_DEBUG=y
+				shift 1
+				;;
+			-*)
+				>&2 echo "$(basename $0): invalid option $1"
+				exit 1
+				;;
+			*)
+				DBUILD_ARGS+=("$1")
+				shift 1
+				;;
+		esac
+	else
+		DBUILD_ARGS+=("$1")
+		shift 1
+	fi
+done
+
+export DBUILD_ACTION="${DBUILD_ARGS[0]}"
+DBUILD_ARGS=("${DBUILD_ARGS[@]:1}")
+
+source "${DBUILD_LIB_DIR}/functions.sh"
+
+if [[ -z "${DBUILD_ACTION}" ]]; then
+	>&2 echo "$(basename $0): missing action"
+	exit 1
+fi
+
+if [[ ! -e "${DBUILD_LIB_DIR}/configs/${DBUILD_CONFIG_NAME}" ]] && [[ ! -e "${HOME}/.config/expidus-sdk/dbuild/configs/${DBUILD_CONFIG_NAME}" ]]; then
+	>&2 echo "$(basename $0): invalid configuration ${DBUILD_CONFIG_NAME}"
+	exit 1
+fi
+
+if [[ ! -e "${DBUILD_LIB_DIR}/actions/${DBUILD_ACTION}.sh" ]] && [[ ! -e "${HOME}/.config/expidus-sdk/dbuild/actions/${DBUILD_ACTION}.sh" ]]; then
+	>&2 echo "$(basename $0): invalid action ${DBUILD_ACTION}"
+	exit 1
+fi
+
+if [[ -e "${HOME}/.config/expidus-sdk/dbuild/configs/${DBUILD_CONFIG_NAME}" ]]; then
+	source "${HOME}/.config/expidus-sdk/dbuild/configs/${DBUILD_CONFIG_NAME}"
+else
+	source "${DBUILD_LIB_DIR}/configs/${DBUILD_CONFIG_NAME}"
+fi
+
+export XBPS_REPO="https://repo.expidusos.com/${EXPIDUS_VERSION}/${TARGET_MACHINE}"
+export TARGET_ARCH="${TARGET_MACHINE%-musl}"
+export TARGET_MACHINE
+export HOSTNAME
+export TIMEZONE
+export PACKAGES
+export DISK_IMAGES
+
+export DBUILD_ROOTFS_DIR="${DBUILD_BUILD_DIR}/rootfs-${EXPIDUS_VERSION}-${TARGET_MACHINE}"
+export DBUILD_CACHE_DIR="${DBUILD_BUILD_DIR}/cache"
+
+export XBPS_CACHE_DIR="${DBUILD_CACHE_DIR}/xbps"
+export XBPS_CONFIG_DIR="${DBUILD_SYSCONF_DIR}/xbps.d"
+
+if [[ -e "${HOME}/.config/expidus-sdk/dbuild/actions/${DBUILD_ACTION}.sh" ]]; then
+	source "${HOME}/.config/expidus-sdk/dbuild/actions/${DBUILD_ACTION}.sh"
+else
+	source "${DBUILD_LIB_DIR}/actions/${DBUILD_ACTION}.sh"
+fi

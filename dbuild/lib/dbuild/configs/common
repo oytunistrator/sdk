@@ -1,0 +1,4 @@
+HOSTNAME=expidus-live
+TIMEZONE=Etc/UTC
+PACKAGES=(base-system ModemManager xorg-server xorg-video-drivers xorg-input-drivers dejavu-fonts-ttf)
+DISK_IMAGES=("rootfs ext4 / defaults")
