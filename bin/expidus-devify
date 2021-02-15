@@ -33,7 +33,7 @@ if [[ ! -d "${EXPIDUS_SDK_ROOTFS_DIR}" ]]; then
 	xbps install -R "https://repo.expidusos.com/${EXPIDUS_SDK_VERSION}/${EXPIDUS_SDK_MACHINE}" -S >/dev/null
 
 	msg "Installing packages"
-	xbps install -R "https://repo.expidusos.com/${EXPIDUS_SDK_VERSION}/${EXPIDUS_SDK_MACHINE}" -yu base-chroot base-devel qemu-user-static >/dev/null
+	xbps install -R "https://repo.expidusos.com/${EXPIDUS_SDK_VERSION}/${EXPIDUS_SDK_MACHINE}" -yu base-chroot base-devel qemu-user-static ca-certificates >/dev/null
 
 	msg "Configuring chroot"
 	mkdir -p "${EXPIDUS_SDK_ROOTFS_DIR}/opt/expidus-sdk" "${EXPIDUS_SDK_ROOTFS_DIR}/etc/xbps.d"
