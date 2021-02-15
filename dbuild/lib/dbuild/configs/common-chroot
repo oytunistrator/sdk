@@ -1,4 +1,4 @@
-TARGET_MACHINE=$(xbps-uhelper -C /dev/null arch)
+TARGET_MACHINE="${DBUILD_CONFIG_NAME%-chroot}"
 PACKAGES=(base-chroot)
 HOSTNAME=$(cat /etc/hostname)
 TIMEZONE=$(readlink /etc/localtime | sed 's|/usr/share/zoneinfo/||g')

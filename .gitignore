@@ -11,3 +11,8 @@ CTestTestfile.cmake
 _deps
 *.xbps*
 *.tar*
+*.img
+*.iso
+System.map-*.*.*_*
+config-*.*.*_*
+vmlinuz-*.*.*_*
