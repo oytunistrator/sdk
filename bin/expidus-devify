@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+set -e +f
+
+export EXPIDUS_SDK_ARCH=$(uname -m)
+export EXPIDUS_SDK_MACHINE=$(uname -m)
+export EXPIDUS_SDK_VERSION="0.1.0-prealpha"
+export EXPIDUS_SDK_CACHE_DIR="$HOME/.local/share/expidus-sdk/cache"
+
+while (( "$#" )); do
+	case "$1" in
+		-h|--help)
+			echo "Usage: $(basename $0) [options]"
+			exit 0
+			;;
+		-a|--arch)
+			export EXPIDUS_SDK_MACHINE="$2"
+			export EXPIDUS_SDK_ARCH="${EXPIDUS_SDK_MACHINE%-musl}"
+			shift 2
+			;;
+	esac
+done
+
+export EXPIDUS_SDK_ROOTFS_DIR="$HOME/.local/share/expidus-sdk/rootfs/${EXPIDUS_SDK_VERSION}/${EXPIDUS_SDK_ARCH}"
+source "/opt/expidus-sdk/lib/sdk-common.sh"
+
+if [[ ! -d "${EXPIDUS_SDK_ROOTFS_DIR}" ]]; then
+	msg "Creating a chroot for the SDK"
+	mkdir -p "${EXPIDUS_SDK_ROOTFS_DIR}/var/db/xbps/keys"
+	cp "/opt/expidus-sdk/lib/dbuild/repo-keys"/*.plist "${EXPIDUS_SDK_ROOTFS_DIR}/var/db/xbps/keys/"
+
+	msg "Syncing repositories"
+	xbps install -R "https://repo.expidusos.com/${EXPIDUS_SDK_VERSION}/${EXPIDUS_SDK_MACHINE}" -S >/dev/null
+
+	msg "Installing packages"
+	xbps install -R "https://repo.expidusos.com/${EXPIDUS_SDK_VERSION}/${EXPIDUS_SDK_MACHINE}" -yu base-chroot base-devel qemu-user-static >/dev/null
+
+	msg "Configuring chroot"
+	mkdir -p "${EXPIDUS_SDK_ROOTFS_DIR}/opt/expidus-sdk" "${EXPIDUS_SDK_ROOTFS_DIR}/etc/xbps.d"
+	cat << EOF >"${EXPIDUS_SDK_ROOTFS_DIR}/etc/xbps.d/remote-repo.conf"
+architecture=${EXPIDUS_SDK_MACHINE}
+repository=https://repo.expidusos.com/${EXPIDUS_SDK_VERSION}/${EXPIDUS_SDK_MACHINE}
+EOF
+fi
+
+msg "Launching development environment for ${EXPIDUS_SDK_VERSION} on ${EXPIDUS_SDK_MACHINE}"
+rootfs_exec "env -i PS1=\"\w: \" PATH=\"/usr/bin:/usr/local/bin:/usr/sbin:/usr/local/sbin:/bin:/sbin:/opt/expidus-sdk/bin\" USER=\"${USER}\" TERM=\"${TERM}\" EXPIDUS_SDK_ARCH=\"${EXPIDUS_SDK_ARCH}\" EXPIDUS_SDK_VERSION=\"${EXPIDUS_SDK_VERSION}\" bash --login"

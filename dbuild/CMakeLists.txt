@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(expidus-sdk-dbuild VERSION "0.1.0" LANGUAGES NONE)
+project(expidus-sdk-dbuild VERSION "0.1.0" HOMEPAGE_URL "https://wiki.expidusos.com/index.php/SDK:dbuild" LANGUAGES NONE)
 
 install(PROGRAMS "${PROJECT_SOURCE_DIR}/bin/dbuild" DESTINATION "/opt/expidus-sdk/bin")
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/etc" DESTINATION "/opt/expidus-sdk")
