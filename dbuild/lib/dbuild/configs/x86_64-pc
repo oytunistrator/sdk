@@ -4,11 +4,12 @@ TARGET_MACHINE=x86_64
 QEMU_CMD="qemu-system-x86_64"
 PACKAGES+=(grub grub-x86_64-efi)
 GRUB_MODULES=(boot linux ext2 fat squash4 part_msdos part_gpt normal configfile search memdisk)
+KERNEL_CMDLINE="root=live:CDLABEL=EXPIDUS_LIVE rd.live.overlay.overlayfs=1"
 
 post_build_rootfs() {
 	mkdir -p "${DBUILD_ROOTFS_DIR}/boot/grub/"
 
-	msg "generating grub config"
+	msg "Generating grub config"
 	cat << EOF > "${DBUILD_ROOTFS_DIR}/boot/grub/grub.cfg"
 set timeout=25
 set default=0

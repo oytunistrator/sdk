@@ -50,7 +50,7 @@ KERNEL_VERSION=$(xbps query -S "linux${KERNEL_SERIES}" | grep pkgver | cut -f2 -
 if [[ -z "${NOT_LIVE}" ]]; then
 	DRACUT_ARGS+=" --force-add dmsquash-live"
 fi
-rootfs_exec "dracut -N --gzip --omit systemd \"/boot/initramfs-${KERNEL_VERSION}.img\" --force ${DRACUT_ARGS}" >/dev/null 2>&1 || (msg_error "Failed to generate initramfs"; exit 1)
+rootfs_exec "dracut -N --gzip --omit systemd \"/boot/initramfs-${KERNEL_VERSION}.img\" --force ${DRACUT_ARGS} ${KERNEL_VERSION}" >/dev/null 2>&1 || (msg_error "Failed to generate initramfs"; exit 1)
 rootfs_cleanup
 
 msg "Generating disk images"

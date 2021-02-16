@@ -136,6 +136,9 @@ if [[ -z "${SKIP_SERVICES}" ]]; then
 	fi
 fi
 
+KERNEL_SERIES=$(xbps query -S linux | grep pkgver | cut -f2 -d '-' | cut -f1 -d '_')
+KERNEL_VERSION=$(xbps query -S "linux${KERNEL_SERIES}" | grep pkgver | cut -f2 -d '-')
+
 if type post_build_rootfs >/dev/null 2>&1; then
 	msg "Running post hook"
 	post_build_rootfs
