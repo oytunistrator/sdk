@@ -118,7 +118,7 @@ if [[ -z "${SKIP_USERS}" ]]; then
 
 	if [[ -z "${NOT_LIVE}" ]]; then
 		msg "Configuring live system"
-		sed -i -e 's|autologin-user=.*|autologin-user=expidus|g' -e 's|autologin-session=.*|autologin-session=expidus-shell|g' \
+		sed -i -e 's|autologin-user=.*|autologin-user=expidus|g' -e 's|autologin-session=.*|autologin-session=expidus|g' \
 			-e 's|#autologin-user=|autologin-user=|g' -e 's|#autologin-session=|autologin-session=|g' "${DBUILD_ROOTFS_DIR}/etc/lightdm/lightdm.conf"
 
 		ENABLED_SERVICES+=(lightdm)

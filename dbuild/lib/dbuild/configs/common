@@ -1,4 +1,5 @@
 HOSTNAME=expidus-live
 TIMEZONE=Etc/UTC
-PACKAGES=(base-system ModemManager xorg-server xorg-video-drivers xorg-input-drivers dejavu-fonts-ttf)
+PACKAGES=(base-system ModemManager xorg-server xorg-video-drivers xorg-input-drivers dejavu-fonts-ttf xinit xkeyboard-config xkbcomp xauth)
 DISK_IMAGES=("rootfs ext4 / defaults")
+ENABLED_SERVICES=(lightdm dbus)
