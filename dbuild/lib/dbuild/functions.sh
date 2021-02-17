@@ -67,7 +67,7 @@ binfmt_register() {
 		fi
 
 		if [ ! -x "$DBUILD_ROOTFS_DIR/usr/bin/$bin" ]; then
-			install -m755 -D $(whereis "$bin") "$DBUILD_ROOTFS_DIR/usr/bin/$bin" || msg_error "Failed to install $bin to rootfs"; exit 1
+			install -m755 -D $(whereis "$bin" | cut -f2 -d ' ') "$DBUILD_ROOTFS_DIR/usr/bin/$bin" || (msg_error "Failed to install $bin to rootfs"; exit 1)
 		fi
 
 		msg_debug "Registered binfmt: ${TARGET_ARCH}"
@@ -105,6 +105,7 @@ rootfs_pseudo_umount() {
 rootfs_exec() {
 	binfmt_register
 	rootfs_pseudo_mount
+	msg_debug "Running \"$1\" in rootfs"
 	chroot "$DBUILD_ROOTFS_DIR" sh -c "$1"
 }
 

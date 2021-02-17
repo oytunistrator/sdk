@@ -1,0 +1,10 @@
+source "${DBUILD_LIB_DIR}/configs/common"
+
+TARGET_MACHINE=aarch64
+PACKAGES+=(pinephone-base)
+DISK_IMAGES=("rootfs ext4 / defaults" "boot vfat /boot defaults")
+NOT_LIVE=y
+
+get_kernel_version() {
+	xbps query -S "pinephone-kernel" | grep pkgver | cut -f3 -d '-'
+}

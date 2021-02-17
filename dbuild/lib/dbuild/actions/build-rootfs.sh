@@ -75,7 +75,7 @@ ln -sf /usr/share/zoneinfo/"${TIMEZONE}" "${DBUILD_ROOTFS_DIR}/etc/localtime"
 msg_debug "Timezone set to ${TIMEZONE}"
 
 msg "Reconfiguring packages"
-rootfs_exec "xbps-reconfigure --all --force" >/dev/null
+rootfs_exec "xbps-reconfigure --all --force >/dev/null 2>&1"
 
 rootfs_adduser() {
 	local p="$1"
@@ -136,8 +136,12 @@ if [[ -z "${SKIP_SERVICES}" ]]; then
 	fi
 fi
 
-KERNEL_SERIES=$(xbps query -S linux | grep pkgver | cut -f2 -d '-' | cut -f1 -d '_')
-KERNEL_VERSION=$(xbps query -S "linux${KERNEL_SERIES}" | grep pkgver | cut -f2 -d '-')
+if type get_kernel_version >/dev/null 2>&1; then
+	KERNEL_VERSION=$(get_kernel_version)
+else
+	KERNEL_SERIES=$(xbps query -S linux | grep pkgver | cut -f2 -d '-' | cut -f1 -d '_')
+	KERNEL_VERSION=$(xbps query -S "linux${KERNEL_SERIES}" | grep pkgver | cut -f2 -d '-')
+fi
 
 if type post_build_rootfs >/dev/null 2>&1; then
 	msg "Running post hook"
