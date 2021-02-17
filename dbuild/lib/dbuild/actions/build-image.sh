@@ -41,7 +41,6 @@ for disk in "${DISK_IMAGES[@]}"; do
 	echo "${disk_uuid} ${disk_path} ${disk_part} ${disk_opts} 0 $((i % 2 + 1))" >>"${DBUILD_ROOTFS_DIR}/etc/fstab"
 done
 
-msg "Generating initramfs"
 if type get_kernel_version >/dev/null 2>&1; then
 	KERNEL_VERSION=$(get_kernel_version)
 else
@@ -49,6 +48,15 @@ else
 	KERNEL_VERSION=$(xbps query -S "linux${KERNEL_SERIES}" | grep pkgver | cut -f2 -d '-')
 fi
 
+if type pre_build_disks >/dev/null 2>&1; then
+	msg "Running pre-build disks hook"
+	pre_build_disks
+fi
+
+msg "Reconfiguring system"
+rootfs_exec "xbps-reconfigure --all --force >/dev/null 2>&1"
+
+msg "Generating initramfs"
 if [[ -z "${NOT_LIVE}" ]]; then
 	DRACUT_ARGS+=" --force-add dmsquash-live"
 fi
@@ -56,11 +64,6 @@ rootfs_exec "dracut -N --gzip --omit systemd \"/boot/initramfs-${KERNEL_VERSION}
 
 msg_debug "Cleaning rootfs before building disk images"
 rootfs_cleanup
-
-if type pre_build_disks >/dev/null 2>&1; then
-	msg "Running pre-build disks hook"
-	pre_build_disks
-fi
 
 msg "Generating disk images"
 while read line; do

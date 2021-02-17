@@ -16,5 +16,10 @@ get_kernel_version() {
 pre_build_disks() {
 	msg "Setting boot arguments"
 	msg_debug "Kernel arguments: \"${KERNEL_CMDLINE} root=$(find_blkdev /)\""
-	sed "0,/setenv bootargs/{s|setenv bootargs .*|setenv bootargs ${KERNEL_CMDLINE} root=$(find_blkdev /)|}" "${DBUILD_ROOTFS_DIR}/boot/boot.txt"
+	sed -i "0,/CMDLINE=/{s|CMDLINE=\".*\"|CMDLINE=\"${KERNEL_CMDLINE} root=$(find_blkdev /)\"|}" "${DBUILD_ROOTFS_DIR}/etc/default/pinephone-uboot-config"
+}
+
+post_build_images() {
+	msg "Embedding U-Boot"
+	dd if="${DBUILD_BUILD_DIR}/boot-${EXPIDUS_VERSION}-aarch64/u-boot-sunxi-with-spl.bin" of="${DBUILD_BUILD_DIR}/${DISK_NAME}" bs=8k seek=1 conv=notrunc status=none
 }
