@@ -7,7 +7,14 @@ NOT_LIVE=y
 COMBINE_DISKS=("boot 0c" "rootfs 83")
 DISK_NAME="expidus-${EXPIDUS_VERSION}-aarch64.img"
 DISK_FORMAT=mbr
+KERNEL_CMDLINE="console=tty0 console=ttyS0,115200 rootwait loglevel=4 slub_debug=P page_poison=1"
 
 get_kernel_version() {
 	xbps query -S "pinephone-kernel" | grep pkgver | cut -f3 -d '-'
+}
+
+pre_build_disks() {
+	msg "Setting boot arguments"
+	msg_debug "Kernel arguments: \"${KERNEL_CMDLINE} root=$(find_blkdev /)\""
+	sed "0,/setenv bootargs/{s|setenv bootargs .*|setenv bootargs ${KERNEL_CMDLINE} root=$(find_blkdev /)|}" "${DBUILD_ROOTFS_DIR}/boot/boot.txt"
 }

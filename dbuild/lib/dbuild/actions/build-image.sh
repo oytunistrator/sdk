@@ -57,6 +57,11 @@ rootfs_exec "dracut -N --gzip --omit systemd \"/boot/initramfs-${KERNEL_VERSION}
 msg_debug "Cleaning rootfs before building disk images"
 rootfs_cleanup
 
+if type pre_build_disks >/dev/null 2>&1; then
+	msg "Running pre-build disks hook"
+	pre_build_disks
+fi
+
 msg "Generating disk images"
 while read line; do
 	if [[ ! "$line" == \#* ]]; then
