@@ -84,7 +84,7 @@ while read line; do
 
 				if [[ "${part}" == "vfat" ]]; then
 					UUID="${blkdev/UUID=/}"
-					printf "\x${UUID:7:2}\x${UUID:5:2}\x${UUID:2:2}\x${UUID:0:2}" | dd bs=1 seek=67 count=4 conv=notrunc of="${DBUILD_BUILD_DIR}/${disk_name}-${EXPIDUS_VERSION}-${TARGET_ARCH}.img" >/dev/null
+					printf "\x${UUID:7:2}\x${UUID:5:2}\x${UUID:2:2}\x${UUID:0:2}" | dd bs=1 seek=67 count=4 conv=notrunc of="${DBUILD_BUILD_DIR}/${disk_name}-${EXPIDUS_VERSION}-${TARGET_ARCH}.img" status=none
 				else
 					tune2fs -U "${blkdev/UUID=/}" "${DBUILD_BUILD_DIR}/${disk_name}-${EXPIDUS_VERSION}-${TARGET_ARCH}.img" >/dev/null
 				fi
@@ -115,11 +115,101 @@ if [[ -z "${NOT_LIVE}" ]]; then
 	fi
 fi
 
-if [[ -z "${EXTRA_DISK_IMAGES}" ]]; then
+if [[ ! -z "${EXTRA_DISK_IMAGES}" ]]; then
 	for name in "${EXTRA_DISK_IMAGES[@]}"; do
 		msg "Creating disk ${name}"
 		eval "build_disk_${name}"
 	done
+fi
+
+if [[ ! -z "${COMBINE_DISKS}" ]] && [[ ! -z "${DISK_NAME}" ]] && [[ ! -z "${DISK_FORMAT}" ]]; then
+	total_size=0
+	case "${DISK_FORMAT}" in
+		mbr)
+			total_size=512
+			;;
+		gpt)
+			total_size=1024
+			;;
+		*)
+			msg_error "Unrecognized disk format: ${DISK_FORMAT}"
+			exit 1
+			;;
+	esac
+
+	for disk in "${COMBINE_DISKS[@]}"; do
+		disk_name=$(echo "${disk}" | cut -f1 -d ' ')
+		disk_size=$(du --apparent-size -sm "${DBUILD_BUILD_DIR}/${disk_name}-${EXPIDUS_VERSION}-${TARGET_ARCH}.img" | awk '{ print $1 }')
+		total_size=$((total_size + (disk_size + disk_size / 6)))
+	done
+
+	msg "Creating ${DISK_NAME} with size of ${total_size}M"
+	truncate -s "${total_size}M" "${DBUILD_BUILD_DIR}/${DISK_NAME}" >/dev/null 2>&1 || (msg_error "Failed to allocate space."; exit 1)
+
+	msg "Formating disk with ${DISK_FORMAT}"
+	case "${DISK_FORMAT}" in
+		mbr)
+			cat << EOF | fdisk "${DBUILD_BUILD_DIR}/${DISK_NAME}" >/dev/null 2>&1 || (msg_error "Failed to format disk."; exit 1)
+o
+w
+EOF
+			;;
+		gpt)
+			cat << EOF | fdisk "${DBUILD_BUILD_DIR}/${DISK_NAME}" >/dev/null 2>&1 || (msg_error "Failed to format disk."; exit 1)
+g
+w
+EOF
+			;;
+	esac
+
+	part_num=1
+	for disk in "${COMBINE_DISKS[@]}"; do
+		disk_name=$(echo "${disk}" | cut -f1 -d ' ')
+		disk_type=$(echo "${disk}" | cut -f2 -d ' ')
+		disk_size=$(du --apparent-size -sm "${DBUILD_BUILD_DIR}/${disk_name}-${EXPIDUS_VERSION}-${TARGET_ARCH}.img" | awk '{ print $1 }')
+		disk_size=$((disk_size + disk_size / 6))
+		case "${DISK_FORMAT}" in
+			mbr)
+				cat << EOF | fdisk "${DBUILD_BUILD_DIR}/${DISK_NAME}" >/dev/null 2>&1 || (msg_error "Failed to format disk."; exit 1)
+n
+p
+${part_num}
+
++${disk_size}M
+t
+${part_num}
+${disk_type}
+w
+EOF
+				;;
+			gpt)
+				cat << EOF | fdisk "${DBUILD_BUILD_DIR}/${DISK_NAME}" >/dev/null 2>&1 || (msg_error "Failed to format disk."; exit 1)
+n
+${part_num}
+
++${disk_size}M
+t
+${part_num}
+${disk_type}
+w
+EOF
+				;;
+		esac
+		part_num=$((part_num + 1))
+	done
+
+	loops=($(kpartx -av "${DBUILD_BUILD_DIR}/${DISK_NAME}" | cut -f3 -d ' '))
+	i=0
+	for disk in "${COMBINE_DISKS[@]}"; do
+		disk_name=$(echo "${disk}" | cut -f1 -d ' ')
+		loop="${loops[$i]}"
+		msg "Writing ${disk_name} to ${loop}"
+		dd if="${DBUILD_BUILD_DIR}/${disk_name}-${EXPIDUS_VERSION}-${TARGET_ARCH}.img" of="/dev/mapper/${loop}" bs=1M status=none || kpartx -dv "${DBUILD_BUILD_DIR}/${DISK_NAME}"
+		i=$((i + 1))
+	done
+
+	sync
+	kpartx -d "${DBUILD_BUILD_DIR}/${DISK_NAME}" >/dev/null
 fi
 
 if type post_build_images >/dev/null 2>&1; then

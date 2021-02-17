@@ -2,8 +2,11 @@ source "${DBUILD_LIB_DIR}/configs/common"
 
 TARGET_MACHINE=aarch64
 PACKAGES+=(pinephone-base)
-DISK_IMAGES=("rootfs ext4 / defaults" "boot vfat /boot defaults")
+DISK_IMAGES=("boot vfat /boot defaults" "rootfs ext4 / defaults")
 NOT_LIVE=y
+COMBINE_DISKS=("boot 0c" "rootfs 83")
+DISK_NAME="expidus-${EXPIDUS_VERSION}-aarch64.img"
+DISK_FORMAT=mbr
 
 get_kernel_version() {
 	xbps query -S "pinephone-kernel" | grep pkgver | cut -f3 -d '-'
