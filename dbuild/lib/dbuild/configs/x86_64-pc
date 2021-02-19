@@ -6,7 +6,7 @@ PACKAGES+=(grub grub-x86_64-efi)
 GRUB_MODULES=(boot linux ext2 fat squash4 part_msdos part_gpt normal configfile search memdisk)
 KERNEL_CMDLINE="root=live:CDLABEL=EXPIDUS_LIVE rd.live.overlay.overlayfs=1"
 
-post_build_rootfs() {
+pre_build_initramfs() {
 	mkdir -p "${DBUILD_ROOTFS_DIR}/boot/grub/"
 
 	msg "Generating grub config"
@@ -15,7 +15,7 @@ set timeout=25
 set default=0
 
 menuentry "ExpidusOS ${EXPIDUS_VERSION}" {
-	linux /boot/vmlinuz-${KERNEL_VERSION} root=$(find_blkdev /) ${KERNEL_CMDLINE}
+	linux /boot/vmlinuz-${KERNEL_VERSION} ${KERNEL_CMDLINE}
 	initrd /boot/initramfs-${KERNEL_VERSION}.img
 	boot
 }

@@ -38,7 +38,11 @@ for disk in "${DISK_IMAGES[@]}"; do
 		disk_uuid="UUID=$(uuidgen | cut -f2 -d '-' | sed -E 's/([[:lower:]])|([[:upper:]])/\U\1\L\2/g')-$(uuidgen | cut -f2 -d '-' | sed -E 's/([[:lower:]])|([[:upper:]])/\U\1\L\2/g')"
 	fi
 
-	echo "${disk_uuid} ${disk_path} ${disk_part} ${disk_opts} 0 $((i % 2 + 1))" >>"${DBUILD_ROOTFS_DIR}/etc/fstab"
+	if [[ -z "${NOT_LIVE}" ]] && [[ "${disk_name}" == "rootfs" ]]; then
+		msg_warn "Skipping rootfs in fstab"
+	else
+		echo "${disk_uuid} ${disk_path} ${disk_part} ${disk_opts} 0 $((i % 2 + 1))" >>"${DBUILD_ROOTFS_DIR}/etc/fstab"
+	fi
 done
 
 if type get_kernel_version >/dev/null 2>&1; then
@@ -55,6 +59,11 @@ fi
 
 msg "Reconfiguring system"
 rootfs_exec "xbps-reconfigure --all --force >/dev/null 2>&1"
+
+if type pre_build_initramfs >/dev/null 2>&1; then
+	msg "Running pre-build initramfs hook"
+	pre_build_initramfs
+fi
 
 msg "Generating initramfs"
 if [[ -z "${NOT_LIVE}" ]]; then
@@ -92,7 +101,7 @@ while read line; do
 
 				if [[ "${part}" == "vfat" ]]; then
 					UUID="${blkdev/UUID=/}"
-					printf "\x${UUID:7:2}\x${UUID:5:2}\x${UUID:2:2}\x${UUID:0:2}" | dd bs=1 seek=67 count=4 conv=notrunc of="${DBUILD_BUILD_DIR}/${disk_name}-${EXPIDUS_VERSION}-${TARGET_ARCH}.img" status=none
+					printf "\x${UUID:0:2}\x${UUID:2:2}\x${UUID:5:2}\x${UUID:7:2}" | dd bs=1 seek=67 count=4 conv=notrunc of="${DBUILD_BUILD_DIR}/${disk_name}-${EXPIDUS_VERSION}-${TARGET_ARCH}.img" status=none
 				else
 					tune2fs -U "${blkdev/UUID=/}" "${DBUILD_BUILD_DIR}/${disk_name}-${EXPIDUS_VERSION}-${TARGET_ARCH}.img" >/dev/null
 				fi
