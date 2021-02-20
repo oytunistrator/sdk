@@ -74,6 +74,10 @@ echo "${HOSTNAME}" >"${DBUILD_ROOTFS_DIR}/etc/hostname"
 ln -sf /usr/share/zoneinfo/"${TIMEZONE}" "${DBUILD_ROOTFS_DIR}/etc/localtime"
 msg_debug "Timezone set to ${TIMEZONE}"
 
+sed -i -e "s|LANG=.*|LANG=\"${LANG}\"|g" "${DBUILD_ROOTFS_DIR}/etc/locale.conf"
+sed -i -e "s|#${LANG}|${LANG}|g" "${DBUILD_ROOTFS_DIR}/etc/default/libc-locales"
+msg_debug "Language set to ${LANG}"
+
 msg "Reconfiguring packages"
 rootfs_exec "xbps-reconfigure --all --force >/dev/null 2>&1"
 
