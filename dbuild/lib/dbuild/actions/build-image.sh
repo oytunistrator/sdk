@@ -11,7 +11,7 @@ exit_trap() {
 	msg "Cleaning up rootfs"
 	rootfs_cleanup
 	msg "Removing rootfs and temporary directories"
-	rm -rf "${DBUILD_ROOTFS_DIR}" "${DBUILD_BUILD_DIR}/live-${EXPIDUS_VERSION}-${TARGET_ARCH}" "${TEMP_DIRS[@]}"
+	rm -rf "${DBUILD_ROOTFS_DIR}" "${DBUILD_BUILD_DIR}/live-${EXPIDUS_VERSION}-${TARGET_ARCH}" "${DBUILD_BUILD_DIR}/"*-"${EXPIDUS_VERSION}-${TARGET_ARCH}" "${TEMP_DIRS[@]}"
 }
 
 msg "Extracting tarball"
@@ -96,13 +96,18 @@ while read line; do
 				msg "Allocating ${sz}M for ${disk_name}"
 				truncate -s "${sz}M" "${DBUILD_BUILD_DIR}/${disk_name}-${EXPIDUS_VERSION}-${TARGET_ARCH}.img" >/dev/null 2>&1 || (msg_error "Failed to allocate space for ${disk_name}."; exit 1)
 
-				msg "Formatting ${disk_name} with ${part}"
-				eval "mkfs.${part}" "${DBUILD_BUILD_DIR}/${disk_name}-${EXPIDUS_VERSION}-${TARGET_ARCH}.img" >/dev/null 2>&1 || (msg_error "Failed to format ${disk_name} with ${part}."; exit 1)
-
 				if [[ "${part}" == "vfat" ]]; then
-					UUID="${blkdev/UUID=/}"
-					printf "\x${UUID:0:2}\x${UUID:2:2}\x${UUID:5:2}\x${UUID:7:2}" | dd bs=1 seek=67 count=4 conv=notrunc of="${DBUILD_BUILD_DIR}/${disk_name}-${EXPIDUS_VERSION}-${TARGET_ARCH}.img" status=none
-				else
+					hex="${blkdev/UUID=/}"
+					mkfs_args="-i ${hex/-/}"
+				fi
+
+				msg "Formatting ${disk_name} with ${part}"
+				eval "mkfs.${part}" ${mkfs_args[@]} "${DBUILD_BUILD_DIR}/${disk_name}-${EXPIDUS_VERSION}-${TARGET_ARCH}.img" >/dev/null 2>&1 || (msg_error "Failed to format ${disk_name} with ${part}."; exit 1)
+				if ! [[ -z "$mkfs_args" ]]; then
+					unset mkfs_args
+				fi
+
+				if ! [[ "${part}" == "vfat" ]]; then
 					tune2fs -U "${blkdev/UUID=/}" "${DBUILD_BUILD_DIR}/${disk_name}-${EXPIDUS_VERSION}-${TARGET_ARCH}.img" >/dev/null
 				fi
 
